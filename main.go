@@ -59,6 +59,7 @@ func main() {
 	}
 	cmds.register("login", handleLogin)
 	cmds.register("register", handleRegister)
+	cmds.register("reset", handleReset)
 	args := os.Args
 	if len(args) < 2 {
 		fmt.Println("need to provide a command")
@@ -69,6 +70,15 @@ func main() {
 		fmt.Println(error)
 		os.Exit(1)
 	}
+}
+
+func handleReset(state *Florida, _ command) error {
+	error := state.db.DeleteAllUsers(context.Background())
+	if error != nil {
+		return error
+	}
+	fmt.Println("deleted all users")
+	return nil
 }
 
 func handleLogin(state *Florida, cmd command) error {
