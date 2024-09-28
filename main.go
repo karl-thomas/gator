@@ -1,15 +1,29 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"os"
 
+	"github.com/google/uuid"
 	"github.com/karl-thomas/gator/internal/config"
+	"github.com/karl-thomas/gator/internal/database"
+	_ "github.com/lib/pq"
 )
 
 // its a joke
 type Florida struct {
+	db   *database.Queries
 	Laws *config.Config
+}
+
+func (f *Florida) OpenDB() {
+	db, err := sql.Open("postgres", f.Laws.DBUrl)
+	if err != nil {
+		panic(err)
+	}
+	f.db = database.New(db)
 }
 
 type command struct {
@@ -38,10 +52,13 @@ func main() {
 	gatorState := Florida{
 		Laws: &stuff,
 	}
+	gatorState.OpenDB()
+
 	cmds := commands{
 		Commands: make(map[string]func(state *Florida, cmd command) error),
 	}
 	cmds.register("login", handleLogin)
+	cmds.register("register", handleRegister)
 	args := os.Args
 	if len(args) < 2 {
 		fmt.Println("need to provide a command")
@@ -58,10 +75,34 @@ func handleLogin(state *Florida, cmd command) error {
 	if len(cmd.Args) == 0 {
 		return fmt.Errorf("need to provide a username")
 	}
-	error := config.SetUser(cmd.Args[0])
+	user, error := state.db.GetUser(context.Background(), cmd.Args[0])
+	if error != nil {
+		return fmt.Errorf("user not found with name %s", cmd.Args[0])
+	}
+	error = config.SetUser(user.Name)
 	if error != nil {
 		return error
 	}
 	fmt.Println("logged in as", cmd.Args[0])
+	return nil
+}
+
+func handleRegister(state *Florida, cmd command) error {
+	if len(cmd.Args) == 0 {
+		return fmt.Errorf("need to provide a username")
+	}
+	user, error := state.db.CreateUser(context.Background(), database.CreateUserParams{
+		ID:   uuid.New(),
+		Name: cmd.Args[0],
+	})
+	if error != nil {
+		return error
+	}
+	error = config.SetUser(user.Name)
+	if error != nil {
+		return error
+	}
+
+	fmt.Printf("%+v\n", user)
 	return nil
 }
