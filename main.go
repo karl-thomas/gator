@@ -60,6 +60,7 @@ func main() {
 	cmds.register("login", handleLogin)
 	cmds.register("register", handleRegister)
 	cmds.register("reset", handleReset)
+	cmds.register("users", handleUsers)
 	args := os.Args
 	if len(args) < 2 {
 		fmt.Println("need to provide a command")
@@ -114,5 +115,22 @@ func handleRegister(state *Florida, cmd command) error {
 	}
 
 	fmt.Printf("%+v\n", user)
+	return nil
+}
+
+func handleUsers(state *Florida, _ command) error {
+	users, error := state.db.GetUsers(context.Background())
+	if error != nil {
+		return error
+	}
+	currentUser := state.Laws.Username
+	for _, user := range users {
+		if user.Name == currentUser {
+			fmt.Printf("* %s (current)\n", user.Name)
+		} else {
+			fmt.Printf("* %s\n", user.Name)
+		}
+	}
+
 	return nil
 }
