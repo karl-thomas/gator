@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/karl-thomas/gator/internal/database"
 	"github.com/karl-thomas/gator/rss"
 )
@@ -45,6 +46,26 @@ func scrapeFeeds(state *Florida) error {
 
 	for _, item := range rssFeed.Channel.Item {
 		fmt.Printf("Title: %s\n", item.Title)
+		publishedAt, error := time.Parse(time.RFC1123Z, item.PubDate)
+		if error != nil {
+			return error
+		}
+		post, error := state.db.AddPost(context.Background(), database.AddPostParams{
+			FeedID:      feed.ID,
+			Title:       item.Title,
+			Url:         item.Link,
+			Description: item.Description,
+			PublishedAt: publishedAt,
+			ID:          uuid.New(),
+		})
+
+		if error.Error() != "pq: duplicate key value violates unique constraint \"posts_url_key\"" {
+			fmt.Printf("Error adding post: %s\n", error)
+		}
+
+		if error == nil {
+			fmt.Printf("Added post %s\n", post.Title)
+		}
 	}
 
 	return nil
