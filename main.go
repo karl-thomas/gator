@@ -1,12 +1,10 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"os"
 
-	"github.com/google/uuid"
 	"github.com/karl-thomas/gator/internal/config"
 	"github.com/karl-thomas/gator/internal/database"
 	_ "github.com/lib/pq"
@@ -71,66 +69,4 @@ func main() {
 		fmt.Println(error)
 		os.Exit(1)
 	}
-}
-
-func handleReset(state *Florida, _ command) error {
-	error := state.db.DeleteAllUsers(context.Background())
-	if error != nil {
-		return error
-	}
-	fmt.Println("deleted all users")
-	return nil
-}
-
-func handleLogin(state *Florida, cmd command) error {
-	if len(cmd.Args) == 0 {
-		return fmt.Errorf("need to provide a username")
-	}
-	user, error := state.db.GetUser(context.Background(), cmd.Args[0])
-	if error != nil {
-		return fmt.Errorf("user not found with name %s", cmd.Args[0])
-	}
-	error = config.SetUser(user.Name)
-	if error != nil {
-		return error
-	}
-	fmt.Println("logged in as", cmd.Args[0])
-	return nil
-}
-
-func handleRegister(state *Florida, cmd command) error {
-	if len(cmd.Args) == 0 {
-		return fmt.Errorf("need to provide a username")
-	}
-	user, error := state.db.CreateUser(context.Background(), database.CreateUserParams{
-		ID:   uuid.New(),
-		Name: cmd.Args[0],
-	})
-	if error != nil {
-		return error
-	}
-	error = config.SetUser(user.Name)
-	if error != nil {
-		return error
-	}
-
-	fmt.Printf("%+v\n", user)
-	return nil
-}
-
-func handleUsers(state *Florida, _ command) error {
-	users, error := state.db.GetUsers(context.Background())
-	if error != nil {
-		return error
-	}
-	currentUser := state.Laws.Username
-	for _, user := range users {
-		if user.Name == currentUser {
-			fmt.Printf("* %s (current)\n", user.Name)
-		} else {
-			fmt.Printf("* %s\n", user.Name)
-		}
-	}
-
-	return nil
 }
