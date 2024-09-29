@@ -59,6 +59,7 @@ func main() {
 	cmds.register("register", handleRegister)
 	cmds.register("reset", handleReset)
 	cmds.register("users", handleUsers)
+	cmds.register("agg", handleAgg)
 	args := os.Args
 	if len(args) < 2 {
 		fmt.Println("need to provide a command")
